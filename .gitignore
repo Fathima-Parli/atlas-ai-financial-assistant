@@ -1,0 +1,34 @@
+# Environment & Secrets
+.env
+*.env
+*.key
+*.pem
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+ENV/
+env/
+.venv/
+
+# Database & SQLite Storage
+*.db
+*.sqlite
+*.sqlite3
+
+# Test & Cache Directories
+.pytest_cache/
+.coverage
+htmlcov/
+
+# User Uploaded Documents
+uploaded_documents/
+*.pdf
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

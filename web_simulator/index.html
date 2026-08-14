@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas AI Financial Assistant - Hackathon Interactive Showcase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --chat-bg: #1e293b;
+            --user-bubble: #2563eb;
+            --bot-bubble: #334155;
+            --accent-green: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .app-layout {
+            display: flex;
+            width: 100%;
+            max-width: 1320px;
+            height: 92vh;
+            background-color: #0f172a;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 350px;
+            background-color: #1e293b;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar-large {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            color: white;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+
+        .bot-title-info h2 {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .bot-title-info p {
+            font-size: 12px;
+            color: var(--accent-green);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .sidebar-section {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-section h3 {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .watchlist-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .badge-green {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .badge-red {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 11px;
+        }
+
+        .prompt-pill {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 9px 12px;
+            margin-bottom: 6px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: #cbd5e1;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .prompt-pill:hover {
+            background-color: rgba(59, 130, 246, 0.2);
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        /* Chat Container */
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #0b1120;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            background-color: #1e293b;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-header h3 {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .chat-history {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        /* Message Bubbles */
+        .message-row {
+            display: flex;
+            margin-bottom: 4px;
+        }
+
+        .message-row.user {
+            justify-content: flex-end;
+        }
+
+        .message-row.bot {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 78%;
+            padding: 14px 18px;
+            border-radius: 14px;
+            font-size: 14px;
+            line-height: 1.55;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            word-wrap: break-word;
+        }
+
+        .bubble.user {
+            background-color: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bubble.bot {
+            background-color: var(--bot-bubble);
+            color: #f1f5f9;
+            border-bottom-left-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .bubble.bot strong {
+            color: #60a5fa;
+        }
+
+        .timestamp {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            text-align: right;
+        }
+
+        /* Input Area */
+        .chat-input-area {
+            padding: 16px 24px;
+            background-color: #1e293b;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .input-box {
+            flex: 1;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 12px 20px;
+            color: white;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-box:focus {
+            border-color: #3b82f6;
+        }
+
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-btn:hover {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transition: transform 0.2s;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .file-upload-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="avatar-large">A</div>
+            <div class="bot-title-info">
+                <h2>Atlas AI Assistant</h2>
+                <p><span class="status-dot"></span> Online • Hackathon Showcase</p>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3>SQLite Coverage Watchlist</h3>
+            <div id="watchlist-container">
+                <div class="watchlist-item">
+                    <div><strong>TCS</strong> <span style="color:#94a3b8; font-size:11px;">Tata Consultancy</span></div>
+                    <div>₹4,185.50 <span class="badge-green">+0.86%</span></div>
+                </div>
+                <div class="watchlist-item">
+                    <div><strong>NVDA</strong> <span style="color:#94a3b8; font-size:11px;">NVIDIA</span></div>
+                    <div>$128.50 <span class="badge-green">+3.42%</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section" style="flex:1; overflow-y:auto;">
+            <h3>Hackathon Demo Prompts</h3>
+            <button class="prompt-pill" onclick="sendQuickPrompt('What is the current price of TCS?')">📈 Demo 2: Price of TCS</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('HDFC Top 100 NAV')">🏦 Demo 3: HDFC Top 100 NAV</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('Add TCS to my watchlist')">➕ Demo 4: Add TCS to Watchlist</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('Show my watchlist')">📋 Demo 4: Show Watchlist</button>
+            <button class="prompt-pill" onclick="triggerDocumentSim()">📄 Demo 5: Upload PDF Report</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('What were the key risks in the report?')">🔍 Demo 5: PDF Question Answering</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('Compare Apple vs Microsoft')">⚔️ Stock Comparison</button>
+            <button class="prompt-pill" onclick="triggerVoiceSim()">🎙️ Voice Message Simulation</button>
+        </div>
+    </div>
+
+    <!-- Main Chat Screen -->
+    <div class="chat-main">
+        <div class="chat-header">
+            <div>
+                <h3>Atlas Executive Financial Assistant</h3>
+                <span style="font-size:12px; color:#94a3b8;">Natural Conversational AI • Stock Quotes • Mutual Funds • PDF RAG</span>
+            </div>
+            <button class="icon-btn" onclick="triggerDailyBrief()" title="Trigger Morning Brief">☀️ Morning Brief</button>
+        </div>
+
+        <div class="chat-history" id="chat-history">
+            <div class="message-row bot">
+                <div class="bubble bot">
+                    Hello 👋<br>
+                    I'm <strong>Atlas</strong>, your AI Financial Assistant.<br><br>
+                    I'd like to understand your workflow so I can tailor intelligence to your needs.<br><br>
+                    What best describes your role? (e.g., Hedge Fund Analyst, CFO, Private Investor)
+                    <div class="timestamp">Just now</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Input Bar -->
+        <div class="chat-input-area">
+            <input type="file" id="image-input" accept="image/*" class="file-upload-input" onchange="uploadImageSelected(event)">
+            <input type="file" id="doc-input" accept=".pdf,.txt,.csv" class="file-upload-input" onchange="uploadDocSelected(event)">
+
+            <button class="icon-btn" onclick="document.getElementById('image-input').click()" title="Send Image">🖼️</button>
+            <button class="icon-btn" onclick="document.getElementById('doc-input').click()" title="Upload PDF Report">📎</button>
+
+            <input type="text" id="message-input" class="input-box" placeholder="Ask Atlas (e.g. 'Price of TCS', 'HDFC Top 100 NAV', 'Show watchlist')..." onkeydown="if(event.key === 'Enter') sendMessage()">
+
+            <button class="icon-btn" onclick="triggerVoiceSim()" title="Send Voice Message">🎙️</button>
+            <button class="send-btn" onclick="sendMessage()" title="Send Message">➤</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const chatHistory = document.getElementById('chat-history');
+    const messageInput = document.getElementById('message-input');
+    const telegramId = "demo_user_123";
+
+    function appendMessage(text, isUser) {
+        const row = document.createElement('div');
+        row.className = `message-row ${isUser ? 'user' : 'bot'}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${isUser ? 'user' : 'bot'}`;
+        
+        let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formatted = formatted.replace(/\n/g, '<br>');
+
+        bubble.innerHTML = formatted;
+        
+        const timeDiv = document.createElement('div');
+        timeDiv.className = 'timestamp';
+        timeDiv.innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        bubble.appendChild(timeDiv);
+
+        row.appendChild(bubble);
+        chatHistory.appendChild(row);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+
+    async function sendMessage(overrideText) {
+        const text = overrideText || messageInput.value.trim();
+        if (!text) return;
+
+        if (!overrideText) messageInput.value = '';
+        appendMessage(text, true);
+
+        try {
+            const res = await fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    telegram_id: telegramId,
+                    name: "Hackathon Evaluator",
+                    message: text
+                })
+            });
+            const data = await res.json();
+            appendMessage(data.reply, false);
+            refreshWatchlist();
+        } catch (e) {
+            appendMessage("Error communicating with Atlas backend server.", false);
+        }
+    }
+
+    function sendQuickPrompt(promptText) {
+        sendMessage(promptText);
+    }
+
+    async function triggerVoiceSim() {
+        appendMessage("🎙️ <em>Voice Message (0:10s): \"Summarize TCS stock performance and HDFC Top 100 NAV\"</em>", true);
+        try {
+            const formData = new FormData();
+            formData.append('telegram_id', telegramId);
+            formData.append('simulated_transcript', 'What is the price of TCS and HDFC Top 100 NAV?');
+            
+            const res = await fetch('/voice', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            appendMessage(`🗣️ <strong>Transcribed Voice Note</strong>: "${data.transcript}"\n\n${data.reply}`, false);
+        } catch (e) {
+            appendMessage("Error processing voice message.", false);
+        }
+    }
+
+    async function uploadImageSelected(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        appendMessage(`🖼️ Uploaded Chart Image: ${file.name}`, true);
+        const formData = new FormData();
+        formData.append('telegram_id', telegramId);
+        formData.append('image', file);
+
+        try {
+            const res = await fetch('/image', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            appendMessage(data.reply, false);
+        } catch (err) {
+            appendMessage("Error processing image.", false);
+        }
+    }
+
+    async function triggerDocumentSim() {
+        appendMessage("📄 <em>Uploaded PDF: 'Annual_Financial_Report.pdf'</em>", true);
+        const formData = new FormData();
+        formData.append('telegram_id', telegramId);
+        
+        try {
+            const res = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            appendMessage(data.reply, false);
+        } catch (e) {
+            appendMessage("Error processing PDF upload.", false);
+        }
+    }
+
+    async function uploadDocSelected(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        appendMessage(`📄 Uploaded document: ${file.name}`, true);
+        
+        const formData = new FormData();
+        formData.append('telegram_id', telegramId);
+        formData.append('file', file);
+
+        try {
+            const res = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            appendMessage(data.reply, false);
+        } catch (e) {
+            appendMessage("Error processing document upload.", false);
+        }
+    }
+
+    async function triggerDailyBrief() {
+        appendMessage("☀️ Generating Morning Market Brief...", true);
+        try {
+            const res = await fetch(`/daily-brief?telegram_id=${telegramId}&type=morning`);
+            const data = await res.json();
+            appendMessage(data.formatted_message, false);
+        } catch (e) {
+            appendMessage("Error fetching daily brief.", false);
+        }
+    }
+
+    async function refreshWatchlist() {
+        try {
+            const res = await fetch(`/watchlist?telegram_id=${telegramId}`);
+            const data = await res.json();
+            if (data.watchlist && data.watchlist.length > 0) {
+                const container = document.getElementById('watchlist-container');
+                container.innerHTML = '';
+                data.watchlist.forEach(w => {
+                    const isPos = w.change_pct >= 0;
+                    const currency = w.symbol.length <= 4 && !['TCS', 'RELIANCE', 'INFY'].includes(w.symbol) ? '$' : '₹';
+                    container.innerHTML += `
+                        <div class="watchlist-item">
+                            <div><strong>${w.symbol}</strong> <span style="color:#94a3b8; font-size:11px;">${w.company_name}</span></div>
+                            <div>${currency}${w.price} <span class="${isPos ? 'badge-green' : 'badge-red'}">${isPos ? '+' : ''}${w.change_pct}%</span></div>
+                        </div>
+                    `;
+                });
+            }
+        } catch (e) {}
+    }
+</script>
+</body>
+</html>
