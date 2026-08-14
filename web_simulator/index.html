@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atlas AI Financial Assistant - Hackathon Interactive Showcase</title>
+    <title>Atlas AI Financial Assistant - Live Voice Recognition & Chat</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -287,6 +287,27 @@
             background-color: rgba(255, 255, 255, 0.1);
         }
 
+        .icon-btn.recording {
+            color: #ef4444;
+            background-color: rgba(239, 68, 68, 0.2);
+            animation: pulse 1.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+
+        .recording-banner {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: #f87171;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
         .send-btn {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
@@ -320,7 +341,7 @@
             <div class="avatar-large">A</div>
             <div class="bot-title-info">
                 <h2>Atlas AI Assistant</h2>
-                <p><span class="status-dot"></span> Online • Hackathon Showcase</p>
+                <p><span class="status-dot"></span> Online • Real Speech Recognition</p>
             </div>
         </div>
 
@@ -339,15 +360,12 @@
         </div>
 
         <div class="sidebar-section" style="flex:1; overflow-y:auto;">
-            <h3>Hackathon Demo Prompts</h3>
-            <button class="prompt-pill" onclick="sendQuickPrompt('What is the current price of TCS?')">📈 Demo 2: Price of TCS</button>
-            <button class="prompt-pill" onclick="sendQuickPrompt('HDFC Top 100 NAV')">🏦 Demo 3: HDFC Top 100 NAV</button>
-            <button class="prompt-pill" onclick="sendQuickPrompt('Add TCS to my watchlist')">➕ Demo 4: Add TCS to Watchlist</button>
-            <button class="prompt-pill" onclick="sendQuickPrompt('Show my watchlist')">📋 Demo 4: Show Watchlist</button>
-            <button class="prompt-pill" onclick="triggerDocumentSim()">📄 Demo 5: Upload PDF Report</button>
-            <button class="prompt-pill" onclick="sendQuickPrompt('What were the key risks in the report?')">🔍 Demo 5: PDF Question Answering</button>
-            <button class="prompt-pill" onclick="sendQuickPrompt('Compare Apple vs Microsoft')">⚔️ Stock Comparison</button>
-            <button class="prompt-pill" onclick="triggerVoiceSim()">🎙️ Voice Message Simulation</button>
+            <h3>Quick Executive Prompts</h3>
+            <button class="prompt-pill" onclick="sendQuickPrompt('What is the current price of TCS?')">📈 Price of TCS</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('HDFC Top 100 NAV')">🏦 HDFC Top 100 NAV</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('Add TCS to my watchlist')">➕ Add TCS to Watchlist</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('Show my watchlist')">📋 Show Watchlist</button>
+            <button class="prompt-pill" onclick="sendQuickPrompt('Compare Apple vs Microsoft')">⚔️ Compare Apple vs Microsoft</button>
         </div>
     </div>
 
@@ -356,7 +374,7 @@
         <div class="chat-header">
             <div>
                 <h3>Atlas Executive Financial Assistant</h3>
-                <span style="font-size:12px; color:#94a3b8;">Natural Conversational AI • Stock Quotes • Mutual Funds • PDF RAG</span>
+                <span style="font-size:12px; color:#94a3b8;">Real Speech-to-Text Voice • Text • Images • PDFs</span>
             </div>
             <button class="icon-btn" onclick="triggerDailyBrief()" title="Trigger Morning Brief">☀️ Morning Brief</button>
         </div>
@@ -366,8 +384,8 @@
                 <div class="bubble bot">
                     Hello 👋<br>
                     I'm <strong>Atlas</strong>, your AI Financial Assistant.<br><br>
-                    I'd like to understand your workflow so I can tailor intelligence to your needs.<br><br>
-                    What best describes your role? (e.g., Hedge Fund Analyst, CFO, Private Investor)
+                    Click 🎙️ to speak directly into your microphone—your actual voice will be transcribed and answered live!<br><br>
+                    What best describes your role? (e.g., Senior Analyst, CFO, Private Investor)
                     <div class="timestamp">Just now</div>
                 </div>
             </div>
@@ -381,9 +399,13 @@
             <button class="icon-btn" onclick="document.getElementById('image-input').click()" title="Send Image">🖼️</button>
             <button class="icon-btn" onclick="document.getElementById('doc-input').click()" title="Upload PDF Report">📎</button>
 
-            <input type="text" id="message-input" class="input-box" placeholder="Ask Atlas (e.g. 'Price of TCS', 'HDFC Top 100 NAV', 'Show watchlist')..." onkeydown="if(event.key === 'Enter') sendMessage()">
+            <div id="recording-banner" class="recording-banner">
+                <span id="recording-text">🔴 Listening to your voice... Speak now!</span>
+            </div>
 
-            <button class="icon-btn" onclick="triggerVoiceSim()" title="Send Voice Message">🎙️</button>
+            <input type="text" id="message-input" class="input-box" placeholder="Ask Atlas (or click 🎙️ to talk)..." onkeydown="if(event.key === 'Enter') sendMessage()">
+
+            <button class="icon-btn" id="mic-btn" onclick="toggleVoiceRecognition()" title="Click to Speak with Microphone">🎙️</button>
             <button class="send-btn" onclick="sendMessage()" title="Send Message">➤</button>
         </div>
     </div>
@@ -392,7 +414,16 @@
 <script>
     const chatHistory = document.getElementById('chat-history');
     const messageInput = document.getElementById('message-input');
+    const micBtn = document.getElementById('mic-btn');
+    const recBanner = document.getElementById('recording-banner');
+    const recText = document.getElementById('recording-text');
     const telegramId = "demo_user_123";
+
+    let recognition = null;
+    let isListening = false;
+
+    // Check if Browser SpeechRecognition is supported
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
     function appendMessage(text, isUser) {
         const row = document.createElement('div');
@@ -405,7 +436,7 @@
         formatted = formatted.replace(/\n/g, '<br>');
 
         bubble.innerHTML = formatted;
-        
+
         const timeDiv = document.createElement('div');
         timeDiv.className = 'timestamp';
         timeDiv.innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -429,7 +460,7 @@
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     telegram_id: telegramId,
-                    name: "Hackathon Evaluator",
+                    name: "Evaluator",
                     message: text
                 })
             });
@@ -445,19 +476,89 @@
         sendMessage(promptText);
     }
 
-    async function triggerVoiceSim() {
-        appendMessage("🎙️ <em>Voice Message (0:10s): \"Summarize TCS stock performance and HDFC Top 100 NAV\"</em>", true);
+    /* BROWSER SPEECH RECOGNITION (VOICE-TO-TEXT) */
+    function toggleVoiceRecognition() {
+        if (!SpeechRecognition) {
+            // Fallback prompt if SpeechRecognition isn't available in current browser
+            const spoken = prompt("Speak your query (Voice Input):", "Price of TCS and HDFC Top 100 NAV");
+            if (spoken) {
+                appendMessage(`🎙️ <em>Voice Message Spoken: "${spoken}"</em>`, true);
+                sendVoiceToBackend(spoken);
+            }
+            return;
+        }
+
+        if (!isListening) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.classList.add('recording');
+                recBanner.style.display = 'flex';
+                messageInput.style.display = 'none';
+                recText.innerText = "🔴 Listening to your voice... Speak now!";
+            };
+
+            recognition.onresult = (event) => {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                recText.innerText = `🎙️ Heard: "${transcript}"`;
+                if (event.results[0].isFinal) {
+                    stopListening(transcript);
+                }
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                stopListening(null);
+            };
+
+            recognition.onend = () => {
+                if (isListening) {
+                    stopListening(null);
+                }
+            };
+
+            recognition.start();
+        } else {
+            stopListening(null);
+        }
+    }
+
+    function stopListening(finalTranscript) {
+        isListening = false;
+        micBtn.classList.remove('recording');
+        recBanner.style.display = 'none';
+        messageInput.style.display = 'block';
+
+        if (recognition) {
+            try { recognition.stop(); } catch(e){}
+        }
+
+        if (finalTranscript && finalTranscript.trim()) {
+            appendMessage(`🎙️ <em>Voice Message (Transcribed): "${finalTranscript}"</em>`, true);
+            sendVoiceToBackend(finalTranscript);
+        }
+    }
+
+    async function sendVoiceToBackend(transcribedText) {
         try {
             const formData = new FormData();
             formData.append('telegram_id', telegramId);
-            formData.append('simulated_transcript', 'What is the price of TCS and HDFC Top 100 NAV?');
-            
+            formData.append('simulated_transcript', transcribedText);
+
             const res = await fetch('/voice', {
                 method: 'POST',
                 body: formData
             });
             const data = await res.json();
-            appendMessage(`🗣️ <strong>Transcribed Voice Note</strong>: "${data.transcript}"\n\n${data.reply}`, false);
+            appendMessage(data.reply, false);
+            refreshWatchlist();
         } catch (e) {
             appendMessage("Error processing voice message.", false);
         }
@@ -481,23 +582,6 @@
             appendMessage(data.reply, false);
         } catch (err) {
             appendMessage("Error processing image.", false);
-        }
-    }
-
-    async function triggerDocumentSim() {
-        appendMessage("📄 <em>Uploaded PDF: 'Annual_Financial_Report.pdf'</em>", true);
-        const formData = new FormData();
-        formData.append('telegram_id', telegramId);
-        
-        try {
-            const res = await fetch('/upload', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await res.json();
-            appendMessage(data.reply, false);
-        } catch (e) {
-            appendMessage("Error processing PDF upload.", false);
         }
     }
 

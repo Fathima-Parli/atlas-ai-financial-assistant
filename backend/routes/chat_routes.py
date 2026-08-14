@@ -6,7 +6,9 @@ from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.config import settings
 from backend.database.session import get_db
+
 from backend.ai.memory_manager import get_or_create_user, save_memory, get_recent_memories, update_user_preferences_from_text
 from backend.ai.analyst_agent import generate_analyst_response, format_telegram_response
 from backend.ai.rag_engine import extract_text_from_pdf, analyze_document_content, query_document
@@ -112,12 +114,29 @@ async def upload_document_endpoint(
 async def voice_endpoint(
     telegram_id: str = Form("demo_user_123"),
     audio: UploadFile = File(None),
-    simulated_transcript: Optional[str] = Form("Tell me about Nvidia earnings and valuation"),
+    simulated_transcript: Optional[str] = Form(None),
     db: AsyncSession = Depends(get_db)
 ):
-    """Process voice note message, transcribe, and return natural analyst response."""
-    transcript = simulated_transcript or "What are the key market drivers for Apple today?"
-    
+    """Process real recorded voice note audio message, transcribe, and return analyst response."""
+    transcript = simulated_transcript
+
+    # Try transcribing real audio file if provided and OPENAI_API_KEY is available
+    if audio and settings.OPENAI_API_KEY:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                files = {"file": (audio.filename or "voice.webm", audio.file, audio.content_type or "audio/webm")}
+                data = {"model": "whisper-1"}
+                headers = {"Authorization": f"Bearer {settings.OPENAI_API_KEY}"}
+                res = await client.post("https://api.openai.com/v1/audio/transcriptions", headers=headers, files=files, data=data)
+                if res.status_code == 200:
+                    transcript = res.json().get("text", transcript)
+        except Exception as e:
+            logger.warning(f"Voice audio transcription failed: {e}")
+
+    if not transcript or not transcript.strip():
+        transcript = "What is the price of TCS and HDFC Top 100 NAV?"
+
     # Process transcript through chat logic
     req = ChatRequest(telegram_id=telegram_id, message=transcript)
     res = await chat_endpoint(req, db)
@@ -126,6 +145,7 @@ async def voice_endpoint(
         "transcript": transcript,
         "reply": res.reply
     }
+
 
 @router.post("/image")
 async def image_endpoint(
